@@ -1,0 +1,861 @@
+{
+  "cases": [
+    {
+      "name": "avatar request sends the mapped engine",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "type": "avatar",
+            "avatar_id": "look_1",
+            "script": "Hello from the gateway, this is a test.",
+            "voice_id": "voice_1",
+            "resolution": "1080p",
+            "model": "heygen-avatar-iv"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "avatar_video",
+          "model": "avatar",
+          "upstreamModel": "heygen-avatar-v",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "url": "https://api.heygen.com/v3/videos",
+        "method": "POST",
+        "headers": {
+          "Accept": "application/json",
+          "X-Api-Key": "test-key",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "type": "avatar",
+          "avatar_id": "look_1",
+          "script": "Hello from the gateway, this is a test.",
+          "voice_id": "voice_1",
+          "resolution": "1080p",
+          "engine": {
+            "type": "avatar_v"
+          }
+        },
+        "action": "avatar_video"
+      }
+    },
+    {
+      "name": "avatar reserves script seconds at the dearest type",
+      "hook": "extractUsage",
+      "args": [
+        {
+          "requestBody": {
+            "type": "avatar",
+            "avatar_id": "look_1",
+            "script": "Hello from the gateway, this is a test.",
+            "voice_id": "voice_1",
+            "resolution": "1080p",
+            "model": "heygen-avatar-iv"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "seconds": 6,
+        "avatar_type": "digital_twin"
+      }
+    },
+    {
+      "name": "avatar rejects callback_url",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "avatar_id": "l",
+            "script": "x",
+            "callback_url": "https://x"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expectedError": "callback_url is not supported"
+    },
+    {
+      "name": "avatar rejects an engine of another model",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "avatar_id": "l",
+            "script": "x",
+            "engine": {
+              "type": "avatar_v"
+            }
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "avatar_video",
+          "model": "heygen-avatar-iii",
+          "upstreamModel": "heygen-avatar-iii",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expectedError": "does not match model"
+    },
+    {
+      "name": "avatar submit keeps the video id",
+      "hook": "parseSubmitResponse",
+      "args": [
+        {
+          "requestBody": {
+            "type": "avatar",
+            "avatar_id": "look_1",
+            "script": "Hello from the gateway, this is a test.",
+            "voice_id": "voice_1",
+            "resolution": "1080p",
+            "model": "heygen-avatar-iv"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        },
+        {
+          "statusCode": 200,
+          "headers": {},
+          "body": {
+            "data": {
+              "video_id": "vid_1",
+              "status": "waiting"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "taskId": "vid_1",
+        "taskData": {
+          "video_id": "vid_1",
+          "status": "waiting"
+        },
+        "state": {
+          "avatar_id": "look_1",
+          "lookups": 0
+        }
+      }
+    },
+    {
+      "name": "avatar query url",
+      "hook": "buildQueryRequest",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        }
+      ],
+      "expected": {
+        "url": "https://api.heygen.com/v3/videos/vid_1",
+        "method": "GET",
+        "headers": {
+          "Accept": "application/json",
+          "X-Api-Key": "test-key"
+        }
+      }
+    },
+    {
+      "name": "avatar pending is queued",
+      "hook": "parseTaskResult",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        },
+        {
+          "data": {
+            "status": "pending"
+          }
+        },
+        {
+          "status": 200,
+          "headers": {}
+        }
+      ],
+      "expected": {
+        "status": "QUEUED"
+      }
+    },
+    {
+      "name": "avatar completed succeeds",
+      "hook": "parseTaskResult",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        },
+        {
+          "data": {
+            "id": "vid_1",
+            "status": "completed",
+            "video_url": "https://files.heygen.ai/v.mp4",
+            "thumbnail_url": "https://files.heygen.ai/t.jpg",
+            "duration": 12.4
+          }
+        },
+        {
+          "status": 200,
+          "headers": {}
+        }
+      ],
+      "expected": {
+        "status": "SUCCESS",
+        "progress": "100%"
+      }
+    },
+    {
+      "name": "avatar failed reports the reason",
+      "hook": "parseTaskResult",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        },
+        {
+          "data": {
+            "status": "failed",
+            "failure_code": "moderation_rejected",
+            "failure_message": "Blocked"
+          }
+        },
+        {
+          "status": 200,
+          "headers": {}
+        }
+      ],
+      "expected": {
+        "status": "FAILURE",
+        "reason": "Blocked (moderation_rejected)"
+      }
+    },
+    {
+      "name": "avatar unknown state is UNKNOWN",
+      "hook": "parseTaskResult",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        },
+        {
+          "data": {
+            "status": "paused"
+          }
+        },
+        {
+          "status": 200,
+          "headers": {}
+        }
+      ],
+      "expected": {
+        "status": "UNKNOWN",
+        "reason": "unrecognized status: paused"
+      }
+    },
+    {
+      "name": "avatar settles duration and look type",
+      "hook": "extractUsageOnComplete",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "publicTaskId": "task_public",
+          "action": "avatar_video",
+          "model": "heygen-avatar-iv",
+          "upstreamModel": "heygen-avatar-iv",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "avatar_type": "photo_avatar"
+          }
+        },
+        {},
+        {
+          "data": {
+            "id": "vid_1",
+            "status": "completed",
+            "video_url": "https://files.heygen.ai/v.mp4",
+            "thumbnail_url": "https://files.heygen.ai/t.jpg",
+            "duration": 12.4
+          }
+        }
+      ],
+      "expected": {
+        "seconds": 13,
+        "avatar_type": "photo_avatar"
+      }
+    },
+    {
+      "name": "avatar lists its files",
+      "hook": "listArtifacts",
+      "args": [
+        {
+          "taskId": "vid_1",
+          "status": "SUCCESS",
+          "action": "avatar_video",
+          "data": {
+            "data": {
+              "id": "vid_1",
+              "status": "completed",
+              "video_url": "https://files.heygen.ai/v.mp4",
+              "thumbnail_url": "https://files.heygen.ai/t.jpg",
+              "duration": 12.4
+            }
+          }
+        }
+      ],
+      "expected": [
+        {
+          "key": "video",
+          "type": "video",
+          "mimeType": "video/mp4"
+        },
+        {
+          "key": "thumbnail",
+          "type": "image",
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    {
+      "name": "translation sends one language",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "url",
+              "url": "https://example.com/in.mp4"
+            },
+            "output_languages": [
+              "Spanish (Spain)"
+            ],
+            "mode": "precision",
+            "translate_audio_only": false,
+            "end_time": 60,
+            "model": "heygen-video-translate"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "url": "https://api.heygen.com/v3/video-translations",
+        "method": "POST",
+        "headers": {
+          "Accept": "application/json",
+          "X-Api-Key": "test-key",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "video": {
+            "type": "url",
+            "url": "https://example.com/in.mp4"
+          },
+          "output_languages": [
+            "Spanish (Spain)"
+          ],
+          "mode": "precision",
+          "translate_audio_only": false,
+          "end_time": 60
+        },
+        "action": "video_translation"
+      }
+    },
+    {
+      "name": "translation reserves the selected span",
+      "hook": "extractUsage",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "url",
+              "url": "https://example.com/in.mp4"
+            },
+            "output_languages": [
+              "Spanish (Spain)"
+            ],
+            "mode": "precision",
+            "translate_audio_only": false,
+            "end_time": 60,
+            "model": "heygen-video-translate"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "seconds": 60,
+        "mode": "precision",
+        "audio_only": false
+      }
+    },
+    {
+      "name": "translation rejects two languages",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "video": "https://x/v.mp4",
+            "output_languages": [
+              "French",
+              "German"
+            ]
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expectedError": "exactly one"
+    },
+    {
+      "name": "translation submit keeps the id",
+      "hook": "parseSubmitResponse",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "url",
+              "url": "https://example.com/in.mp4"
+            },
+            "output_languages": [
+              "Spanish (Spain)"
+            ],
+            "mode": "precision",
+            "translate_audio_only": false,
+            "end_time": 60,
+            "model": "heygen-video-translate"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        },
+        {
+          "statusCode": 200,
+          "headers": {},
+          "body": {
+            "data": {
+              "video_translation_ids": [
+                "vt_1"
+              ]
+            }
+          }
+        }
+      ],
+      "expected": {
+        "taskId": "vt_1",
+        "taskData": {
+          "video_translation_ids": [
+            "vt_1"
+          ]
+        },
+        "state": {
+          "mode": "precision",
+          "audio_only": false
+        }
+      }
+    },
+    {
+      "name": "translation running is in progress",
+      "hook": "parseTaskResult",
+      "args": [
+        {
+          "taskId": "vt_1",
+          "publicTaskId": "task_public",
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "mode": "precision",
+            "audio_only": false
+          }
+        },
+        {
+          "data": {
+            "status": "running"
+          }
+        },
+        {
+          "status": 200,
+          "headers": {}
+        }
+      ],
+      "expected": {
+        "status": "IN_PROGRESS"
+      }
+    },
+    {
+      "name": "translation settles on duration and mode",
+      "hook": "extractUsageOnComplete",
+      "args": [
+        {
+          "taskId": "vt_1",
+          "publicTaskId": "task_public",
+          "action": "video_translation",
+          "model": "heygen-video-translate",
+          "upstreamModel": "heygen-video-translate",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "data": null,
+          "state": {
+            "mode": "precision",
+            "audio_only": false
+          }
+        },
+        {},
+        {
+          "data": {
+            "id": "vt_1",
+            "status": "completed",
+            "video_url": "https://files.heygen.ai/t.mp4",
+            "srt_caption_url": "https://files.heygen.ai/t.srt",
+            "duration": 58.1
+          }
+        }
+      ],
+      "expected": {
+        "seconds": 59,
+        "mode": "precision",
+        "audio_only": false
+      }
+    },
+    {
+      "name": "lipsync request",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "url",
+              "url": "https://example.com/v.mp4"
+            },
+            "audio": {
+              "type": "url",
+              "url": "https://example.com/a.wav"
+            },
+            "mode": "speed",
+            "model": "heygen-lipsync"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "lipsync",
+          "model": "heygen-lipsync",
+          "upstreamModel": "heygen-lipsync",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "url": "https://api.heygen.com/v3/lipsyncs",
+        "method": "POST",
+        "headers": {
+          "Accept": "application/json",
+          "X-Api-Key": "test-key",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "video": {
+            "type": "url",
+            "url": "https://example.com/v.mp4"
+          },
+          "audio": {
+            "type": "url",
+            "url": "https://example.com/a.wav"
+          },
+          "mode": "speed"
+        },
+        "action": "lipsync"
+      }
+    },
+    {
+      "name": "lipsync reserves the unknown length",
+      "hook": "extractUsage",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "url",
+              "url": "https://example.com/v.mp4"
+            },
+            "audio": {
+              "type": "url",
+              "url": "https://example.com/a.wav"
+            },
+            "mode": "speed",
+            "model": "heygen-lipsync"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "lipsync",
+          "model": "heygen-lipsync",
+          "upstreamModel": "heygen-lipsync",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expected": {
+        "seconds": 300,
+        "mode": "speed"
+      }
+    },
+    {
+      "name": "lipsync rejects asset ids",
+      "hook": "buildSubmitRequest",
+      "args": [
+        {
+          "requestBody": {
+            "video": {
+              "type": "asset_id",
+              "asset_id": "a"
+            },
+            "audio": "https://x/a.wav"
+          },
+          "requestHeaders": {
+            "Content-Type": "application/json",
+            "Accept": ""
+          },
+          "action": "lipsync",
+          "model": "heygen-lipsync",
+          "upstreamModel": "heygen-lipsync",
+          "baseUrl": "https://api.heygen.com",
+          "apiKey": "test-key",
+          "authHeader": "Bearer test-key",
+          "upstream": {
+            "kind": "vendor"
+          },
+          "config": {},
+          "files": [],
+          "publicTaskId": "task_public"
+        }
+      ],
+      "expectedError": "asset_id is not supported"
+    }
+  ]
+}
