@@ -99,6 +99,18 @@ curl https://your-gateway.example.com/v3/video-translations \
   -d '{"video": {"type": "url", "url": "https://example.com/talk.mp4"}, "output_language": "Spanish (Spain)", "mode": "speed"}'
 ```
 
+## Through another New API gateway
+
+A second gateway can sell HeyGen through yours. Install this plugin, at the same version, on both gateways:
+
+- On the gateway that calls HeyGen, set up the Task Plugin channel above.
+- On the other gateway, create a **New API** channel (type 60). Its base URL is the first gateway's address and its key is a token from the first gateway. Pick `byaiden_heygen` under Upstream task plugins and add the HeyGen models.
+
+The outer gateway sends HeyGen's own requests to the first gateway's `/byaiden_heygen/v3/...` paths with the token as a Bearer key. It polls them there and downloads the outputs through the first gateway's download addresses. On the first gateway, set the server address (`ServerAddress`) to an address the outer gateway can reach, because the download addresses are built from it. Each gateway bills its own users with its own task expressions; the expressions above work on both.
+
+- Seconds settle on the duration HeyGen reports, on both gateways.
+- The outer gateway cannot read the type of an avatar look, because the first gateway does not serve HeyGen's look list. It keeps the reserved type: studio avatar on Avatar III, digital twin on IV and V. On Avatar IV and V that costs the same as the real type. On Avatar III a digital-twin video is billed at the studio-avatar price on the outer gateway. A talking photo is always a photo avatar.
+
 ## Limits
 
 - Media are public `http(s)` URLs; talking-photo images may also be base64 or a multipart upload. HeyGen `asset_id` values are refused, since they name files in the gateway's own HeyGen account.

@@ -98,6 +98,18 @@ curl https://your-gateway.example.com/v3/video-translations \
   -d '{"video": {"type": "url", "url": "https://example.com/talk.mp4"}, "output_language": "Spanish (Spain)", "mode": "speed"}'
 ```
 
+## 经由另一个 New API 网关
+
+另一个网关可以通过你的网关转售 HeyGen。两个网关都要安装本插件的同一版本：
+
+- 直接调用 HeyGen 的网关按上文创建任务插件渠道。
+- 另一个网关创建 **New API** 渠道（类型 60）：Base URL 填第一个网关的地址，密钥填第一个网关的令牌，在「上游任务插件」中选择 `byaiden_heygen`，并添加 HeyGen 模型。
+
+外层网关把 HeyGen 原生请求发到第一个网关的 `/byaiden_heygen/v3/...` 路径，用令牌作为 Bearer 密钥，在那里轮询任务，并通过第一个网关的下载地址取回结果。请把第一个网关的服务器地址（`ServerAddress`）设成外层网关能访问的地址，下载地址由它生成。每个网关用自己的任务表达式向自己的用户计费，上面的表达式在两个网关上都适用。
+
+- 两个网关都按 HeyGen 返回的时长结算秒数。
+- 第一个网关不提供 HeyGen 的形象列表，外层网关读不到形象类型，按预扣类型结算：Avatar III 为工作室数字人，IV 和 V 为数字分身。Avatar IV 和 V 上这与实际类型价格相同；Avatar III 上数字分身视频在外层网关按工作室数字人的价格计费。照片数字人始终按照片数字人计费。
+
 ## 限制
 
 - 媒体须为公开的 `http(s)` URL；照片说话的图片也可以是 base64 或 multipart 上传。HeyGen 的 `asset_id` 会被拒绝，因为它指向网关自己 HeyGen 账号中的文件。

@@ -44,7 +44,7 @@ export const meta = {
     "en": "HeyGen avatar videos on the Avatar III, IV and V engines (avatar looks and talking photos driven by a script or audio), video translation and lipsync",
     "zh": "HeyGen 数字人视频（Avatar III、IV、V 引擎，形象或照片由文案或音频驱动）、视频翻译与口型同步"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "ByAiden",
     "url": "https://github.com/ByAiden"
@@ -59,6 +59,10 @@ export const meta = {
     "heygen-lipsync"
   ],
   "fetchMode": "per_task",
+  "upstreams": [
+    "vendor",
+    "new_api"
+  ],
   "usageSchema": {
     "seconds": {
       "type": "number",
@@ -767,8 +771,23 @@ function unwrap(value) {
   return inner && !present(object.status) && !present(object.id) ? inner : object;
 }
 
+// On a New API channel the same plugin answers on another gateway, which
+// serves HeyGen's paths under the plugin's key and takes the gateway token as
+// a Bearer token instead of HeyGen's X-Api-Key.
+const PLUGIN_KEY = "byaiden_heygen";
+
+function viaGateway(ctx) {
+  return Boolean(ctx.upstream && ctx.upstream.kind === "new_api");
+}
+
+function apiRoot(ctx) {
+  return ctx.baseUrl + (viaGateway(ctx) ? "/" + PLUGIN_KEY : "");
+}
+
 function headers(ctx, json) {
-  const out = { Accept: "application/json", "X-Api-Key": ctx.apiKey };
+  const out = { Accept: "application/json" };
+  if (viaGateway(ctx)) out.Authorization = ctx.authHeader || "Bearer " + ctx.apiKey;
+  else out["X-Api-Key"] = ctx.apiKey;
   if (json) out["Content-Type"] = "application/json";
   return out;
 }
@@ -786,7 +805,7 @@ function taskKind(ctx) {
 }
 
 function statusURL(ctx, kind, id) {
-  return ctx.baseUrl + PATHS[kind] + "/" + encodeURIComponent(id);
+  return apiRoot(ctx) + PATHS[kind] + "/" + encodeURIComponent(id);
 }
 
 // The deliverables of a finished job, each with its HeyGen URL.
@@ -924,8 +943,10 @@ export function buildSubmitRequest(ctx) {
   const request = requestFor(stripModel(ctx.requestBody || {}), model);
   const body = request.body;
   if (modelKind(model) === "video" && body.type === "avatar") body.engine = Object.assign({}, body.engine, { type: ENGINES[model] });
+  // The upstream gateway picks the model, and its price, from the body.
+  if (viaGateway(ctx)) body.model = model;
   return {
-    url: ctx.baseUrl + PATHS[modelKind(model)],
+    url: apiRoot(ctx) + PATHS[modelKind(model)],
     method: "POST",
     headers: headers(ctx, true),
     body: body,
@@ -972,10 +993,12 @@ export function buildQueryRequest(ctx) {
 // again on a later poll, a few times at most.
 function lookState(ctx) {
   const state = plainObject(ctx.state);
+  // An upstream gateway does not serve HeyGen's look list.
+  if (viaGateway(ctx)) return null;
   if (!state || state.avatar_type || !trimmed(state.avatar_id) || (state.lookups || 0) >= MAX_LOOK_LOOKUPS) return null;
   const next = Object.assign({}, state, { lookups: (state.lookups || 0) + 1 });
   try {
-    const response = utils.fetch({ url: ctx.baseUrl + "/v3/avatars/looks/" + encodeURIComponent(state.avatar_id), headers: headers(ctx, false) });
+    const response = utils.fetch({ url: apiRoot(ctx) + "/v3/avatars/looks/" + encodeURIComponent(state.avatar_id), headers: headers(ctx, false) });
     const type = response.status === 200 ? trimmed(unwrap(response.body).avatar_type) : "";
     if (AVATAR_TYPES.includes(type)) next.avatar_type = type;
   } catch (_error) {

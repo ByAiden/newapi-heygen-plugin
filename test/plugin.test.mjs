@@ -40,7 +40,7 @@ test("manifest follows the community rules", () => {
   assert.equal(meta.apiVersion, 1);
   assert.equal(meta.key, meta.author.name.toLowerCase() + "_heygen");
   assert.match(meta.key, /^[a-z0-9_]{1,30}$/);
-  assert.equal(meta.version, "1.0.0");
+  assert.match(meta.version, /^\d+\.\d+\.\d+$/);
   assert.equal(meta.baseUrl, BASE);
   assert.equal(meta.channelTypes, undefined);
   assert.ok(meta.website.startsWith("https://"));
@@ -266,4 +266,99 @@ test("hooks do not mutate their arguments", () => {
   plugin.extractUsage(ctx);
   plugin.parseSubmitResponse(ctx, { statusCode: 200, headers: {}, body: { data: { video_id: "v" } } });
   assert.equal(JSON.stringify(ctx), before);
+});
+
+test("PLUGIN_KEY matches meta.key and new_api is declared", () => {
+  const source = readFileSync(new URL("../plugin.js", import.meta.url), "utf8");
+  assert.equal(source.match(/const PLUGIN_KEY = "([^"]+)";/)[1], meta.key);
+  assert.deepEqual(meta.upstreams, ["vendor", "new_api"]);
+});
+
+// The middle gateway runs this plugin too: the driver addresses its native
+// routes under /{key} with the gateway token as a Bearer token, and reads what
+// the middle's own presenters render.
+const MIDDLE = "https://middle.example";
+const viaGateway = { baseUrl: MIDDLE, apiKey: "sk-middle", authHeader: "Bearer sk-middle", upstream: { kind: "new_api" } };
+
+test("new_api: avatar video goes to the middle gateway's native route with Bearer", () => {
+  fetched.length = 0;
+  const intent = native.createVideo(json(AVATAR));
+  const request = plugin.buildSubmitRequest(driver(intent, viaGateway));
+  assert.equal(request.url, MIDDLE + "/" + meta.key + "/v3/videos");
+  assert.equal(request.headers.Authorization, "Bearer sk-middle");
+  assert.equal(request.headers["X-Api-Key"], undefined);
+  assert.equal(request.body.model, "heygen-avatar-iv");
+  // The middle plugin decodes the body the outer layer sends.
+  const middle = native.createVideo(json(request.body));
+  assert.equal(middle.model, "heygen-avatar-iv");
+  assert.deepEqual(plugin.extractUsage(driver(middle)), plugin.extractUsage(driver(intent, viaGateway)));
+  // The middle's submit presenter output, with its public task id.
+  const created = native.videoCreated({}, { task_id: "task_mid", data: { data: { video_id: "vid_vendor", status: "pending" } } });
+  const parsed = plugin.parseSubmitResponse(driver(intent, viaGateway), { statusCode: 200, headers: {}, body: created });
+  assert.equal(parsed.taskId, "task_mid");
+  const q = query("heygen-avatar-iv", "avatar_video", Object.assign({ taskId: "task_mid", state: parsed.state }, viaGateway));
+  const queryRequest = plugin.buildQueryRequest(q);
+  assert.equal(queryRequest.url, MIDDLE + "/" + meta.key + "/v3/videos/task_mid");
+  assert.equal(queryRequest.headers.Authorization, "Bearer sk-middle");
+  assert.equal(queryRequest.headers["X-Api-Key"], undefined);
+  // The middle's query presenter output after the vendor finished.
+  const vendorDone = { data: { status: "completed", duration: 41.2, video_url: "https://cdn.heygen/v.mp4", thumbnail_url: "https://cdn.heygen/t.jpg", folder_id: "secret" } };
+  const rendered = native.videoStatus({ artifacts: { video: { url: "https://middle.example/signed/video" }, thumbnail: { url: "https://middle.example/signed/thumb" } } }, { task_id: "task_mid", status: "SUCCESS", data: vendorDone });
+  assert.equal(rendered.data.folder_id, undefined);
+  const result = plugin.parseTaskResult(q, rendered, { statusCode: 200 });
+  assert.equal(result.status, "SUCCESS");
+  assert.equal(result.state, undefined, "no HeyGen look lookup through a gateway");
+  assert.equal(fetched.length, 0);
+  // Seconds settle the same as on the middle layer; the look type keeps the reservation.
+  assert.deepEqual(plugin.extractUsageOnComplete(q, result, rendered), plugin.extractUsageOnComplete(query("heygen-avatar-iv", "avatar_video", { state: { avatar_id: "look_1" } }), {}, vendorDone));
+  const outer = { task_id: "task_outer", status: "SUCCESS", data: rendered, action: "avatar_video", model: "heygen-avatar-iv", upstreamModel: "heygen-avatar-iv" };
+  assert.deepEqual(plugin.listArtifacts(outer).map((a) => a.key), ["video", "thumbnail"]);
+});
+
+test("new_api: content is the middle gateway's signed download, re-read with Bearer", () => {
+  fetched.length = 0;
+  fetchImpl = () => ({ status: 200, body: { data: { id: "task_mid", status: "completed", video_url: "https://middle.example/signed/fresh" } } });
+  const ctx = Object.assign(query("heygen-lipsync", "lipsync", viaGateway), { upstreamTaskId: "task_mid", artifactKey: "video", clientRequest: { method: "GET" }, data: { data: { status: "completed", video_url: "https://middle.example/signed/old" } } });
+  const request = plugin.buildContentRequest(ctx);
+  assert.deepEqual(request, { url: "https://middle.example/signed/fresh", method: "GET", credentialless: true });
+  assert.equal(fetched[0].url, MIDDLE + "/" + meta.key + "/v3/lipsyncs/task_mid");
+  assert.equal(fetched[0].headers.Authorization, "Bearer sk-middle");
+  assert.equal(fetched[0].headers["X-Api-Key"], undefined);
+  fetchImpl = () => {
+    throw new Error("utils.fetch is not available");
+  };
+});
+
+test("new_api: translation and lipsync read the middle's presenters", () => {
+  const translation = native.createTranslation(json({ video: "https://x/v.mp4", output_language: "French", mode: "precision" }));
+  const request = plugin.buildSubmitRequest(driver(translation, viaGateway));
+  assert.equal(request.url, MIDDLE + "/" + meta.key + "/v3/video-translations");
+  assert.equal(native.createTranslation(json(request.body)).model, "heygen-video-translate");
+  const created = native.translationCreated({}, { task_id: "task_t", data: { data: { video_translation_ids: ["vt_vendor"] } } });
+  const parsed = plugin.parseSubmitResponse(driver(translation, viaGateway), { statusCode: 200, headers: {}, body: created });
+  assert.equal(parsed.taskId, "task_t");
+  const q = query("heygen-video-translate", "video_translation", Object.assign({ taskId: "task_t", state: parsed.state }, viaGateway));
+  assert.equal(plugin.buildQueryRequest(q).url, MIDDLE + "/" + meta.key + "/v3/video-translations/task_t");
+  const done = { data: { status: "completed", duration: 30, translate_audio_only: false, video_url: "https://cdn/v.mp4" } };
+  const rendered = native.translationStatus({ artifacts: { video: { url: "https://middle.example/s/v" } } }, { task_id: "task_t", status: "SUCCESS", data: done });
+  assert.equal(plugin.parseTaskResult(q, rendered, {}).status, "SUCCESS");
+  assert.deepEqual(plugin.extractUsageOnComplete(q, {}, rendered), { seconds: 30, mode: "precision", audio_only: false });
+  const lipsync = native.createLipsync(json({ video: "https://x/v.mp4", audio: "https://x/a.wav" }));
+  const lr = plugin.buildSubmitRequest(driver(lipsync, viaGateway));
+  assert.equal(lr.url, MIDDLE + "/" + meta.key + "/v3/lipsyncs");
+  const lp = plugin.parseSubmitResponse(driver(lipsync, viaGateway), { statusCode: 200, headers: {}, body: native.lipsyncCreated({}, { task_id: "task_l" }) });
+  assert.equal(lp.taskId, "task_l");
+  // A task the middle gateway failed reads as failed.
+  const failed = native.lipsyncStatus({}, { task_id: "task_l", status: "FAILURE", fail_reason: "timeout", data: { data: { status: "processing" } } });
+  assert.equal(plugin.parseTaskResult(query("heygen-lipsync", "lipsync", viaGateway), failed, {}).status, "FAILURE");
+});
+
+test("a missing ctx.upstream means the vendor", () => {
+  const intent = native.createVideo(json(AVATAR));
+  const ctx = driver(intent);
+  delete ctx.upstream;
+  const request = plugin.buildSubmitRequest(ctx);
+  assert.equal(request.url, BASE + "/v3/videos");
+  assert.equal(request.headers["X-Api-Key"], "hg-test");
+  assert.equal(request.body.model, undefined);
 });
