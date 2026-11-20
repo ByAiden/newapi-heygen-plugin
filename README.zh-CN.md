@@ -48,36 +48,36 @@ HeyGen 所有操作都按输出秒数计费。插件上报以下用量：
 - `heygen-video-translate`：“视频翻译单价”（`seconds`）、“翻译模式”（`mode`：`speed` 或 `precision`）和“是否仅翻译音频”（`audio_only`）。按 `start_time` 到 `end_time` 的区间预扣，没有 `end_time` 时预扣 300 秒，完成后按返回时长结算。
 - `heygen-lipsync`：“口型同步单价”（`seconds`）和“口型同步模式”（`mode`），预扣与结算方式同上。
 
-以下是按 HeyGen 自助 API 标价（帮助中心，2026 年 11 月；按分钟标价，按秒计费）写的推荐任务表达式，单位为美元。请乘以你的利润系数；网关按 美元 × 500000 扣额度。
+以下是按 HeyGen 自助 API 标价（帮助中心，2026 年 11 月；按分钟标价，按秒计费）写的推荐任务表达式，单位为美元。每个数字都是每秒单价（每分钟标价除以 60），收费与按分钟标价完全相同，模型广场也能把表达式显示成价格表。加价时把每个数字乘以利润系数，不要在末尾追加 `* 1.2` 之类的系数，否则模型广场无法显示价格表；网关按 美元 × 500000 扣额度。
 
 `heygen-avatar-iii`（数字分身每分钟 $0.60，工作室和照片数字人 $0.99）：
 
 ```text
-u("avatar_type") == "digital_twin" ? tier("digital twin", u("seconds") * 0.60 / 60) : tier("studio or photo", u("seconds") * 0.99 / 60)
+u("avatar_type") == "digital_twin" ? tier("digital twin", u("seconds") * 0.01) : tier("studio or photo", u("seconds") * 0.0165)
 ```
 
 `heygen-avatar-iv`（照片数字人每分钟 $2.31，数字分身和工作室数字人 $4.83）：
 
 ```text
-u("avatar_type") == "photo_avatar" ? tier("photo", u("seconds") * 2.31 / 60) : tier("twin or studio", u("seconds") * 4.83 / 60)
+u("avatar_type") == "photo_avatar" ? tier("photo", u("seconds") * 0.0385) : tier("twin or studio", u("seconds") * 0.0805)
 ```
 
 `heygen-avatar-v`（数字分身每分钟 $7.20；HeyGen 未列出 Avatar V 的其他类型价格）：
 
 ```text
-tier("base", u("seconds") * 7.20 / 60)
+tier("base", u("seconds") * 0.12)
 ```
 
 `heygen-video-translate`（快速模式仅音频每分钟 $0.57，快速模式含口型 $0.81，精准模式 $1.50）：
 
 ```text
-u("mode") == "precision" ? tier("precision", u("seconds") * 1.50 / 60) : u("audio_only") == true ? tier("speed audio only", u("seconds") * 0.57 / 60) : tier("speed", u("seconds") * 0.81 / 60)
+u("mode") == "precision" ? tier("precision", u("seconds") * 0.025) : u("audio_only") == true ? tier("speed audio only", u("seconds") * 0.0095) : tier("speed", u("seconds") * 0.0135)
 ```
 
 `heygen-lipsync`（快速每分钟 $0.84，精准 $1.74）：
 
 ```text
-u("mode") == "precision" ? tier("precision", u("seconds") * 1.74 / 60) : tier("speed", u("seconds") * 0.84 / 60)
+u("mode") == "precision" ? tier("precision", u("seconds") * 0.029) : tier("speed", u("seconds") * 0.014)
 ```
 
 HeyGen 会不定期调整价格，企业合同价格也不同；保存前请在 HeyGen 后台核对。

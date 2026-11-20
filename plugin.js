@@ -44,7 +44,7 @@ export const meta = {
     "en": "HeyGen avatar videos on the Avatar III, IV and V engines (avatar looks and talking photos driven by a script or audio), video translation and lipsync",
     "zh": "HeyGen 数字人视频（Avatar III、IV、V 引擎，形象或照片由文案或音频驱动）、视频翻译与口型同步"
   },
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": {
     "name": "ByAiden",
     "url": "https://github.com/ByAiden"

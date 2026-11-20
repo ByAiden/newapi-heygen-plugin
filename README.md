@@ -49,36 +49,36 @@ HeyGen bills every operation per second of output. The plugin reports these fact
 - `heygen-video-translate`: "Video translation unit price" (`seconds`), "Translation mode" (`mode`: `speed` or `precision`) and "Whether only the audio is translated" (`audio_only`). It reserves the span between `start_time` and `end_time`, or 300 seconds without `end_time`, and settles on the reported duration.
 - `heygen-lipsync`: "Lipsync unit price" (`seconds`) and "Lipsync mode" (`mode`), reserved and settled the same way.
 
-Recommended task expressions at HeyGen's self-serve API list prices (help center, November 2026; per minute, charged by the second), in USD. Multiply by your margin; the gateway charges USD × 500000 quota.
+Recommended task expressions at HeyGen's self-serve API list prices (help center, November 2026; per minute, charged by the second), in USD. Each number is the per-second price, the minute price divided by 60, so the charge is the same as the per-minute price and the gateway's model page shows the expression as a price table. Multiply each number by your margin rather than appending a factor such as `* 1.2`, which stops the page from showing the table; the gateway charges USD × 500000 quota.
 
 `heygen-avatar-iii` (digital twin $0.60, studio and photo avatar $0.99 a minute):
 
 ```text
-u("avatar_type") == "digital_twin" ? tier("digital twin", u("seconds") * 0.60 / 60) : tier("studio or photo", u("seconds") * 0.99 / 60)
+u("avatar_type") == "digital_twin" ? tier("digital twin", u("seconds") * 0.01) : tier("studio or photo", u("seconds") * 0.0165)
 ```
 
 `heygen-avatar-iv` (photo avatar $2.31, digital twin and studio avatar $4.83 a minute):
 
 ```text
-u("avatar_type") == "photo_avatar" ? tier("photo", u("seconds") * 2.31 / 60) : tier("twin or studio", u("seconds") * 4.83 / 60)
+u("avatar_type") == "photo_avatar" ? tier("photo", u("seconds") * 0.0385) : tier("twin or studio", u("seconds") * 0.0805)
 ```
 
 `heygen-avatar-v` (digital twin $7.20 a minute; HeyGen lists no other type on Avatar V):
 
 ```text
-tier("base", u("seconds") * 7.20 / 60)
+tier("base", u("seconds") * 0.12)
 ```
 
 `heygen-video-translate` (speed audio only $0.57, speed with lip sync $0.81, precision $1.50 a minute):
 
 ```text
-u("mode") == "precision" ? tier("precision", u("seconds") * 1.50 / 60) : u("audio_only") == true ? tier("speed audio only", u("seconds") * 0.57 / 60) : tier("speed", u("seconds") * 0.81 / 60)
+u("mode") == "precision" ? tier("precision", u("seconds") * 0.025) : u("audio_only") == true ? tier("speed audio only", u("seconds") * 0.0095) : tier("speed", u("seconds") * 0.0135)
 ```
 
 `heygen-lipsync` (speed $0.84, precision $1.74 a minute):
 
 ```text
-u("mode") == "precision" ? tier("precision", u("seconds") * 1.74 / 60) : tier("speed", u("seconds") * 0.84 / 60)
+u("mode") == "precision" ? tier("precision", u("seconds") * 0.029) : tier("speed", u("seconds") * 0.014)
 ```
 
 HeyGen changes these prices from time to time and enterprise contracts differ; check your HeyGen dashboard before saving.

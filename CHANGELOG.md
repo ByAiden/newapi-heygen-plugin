@@ -1,15 +1,15 @@
 ---
 changelogVersion: 1
 plugin: "byaiden_heygen"
-version: "1.1.0"
+version: "1.1.1"
 locale: "en"
 translations:
   zh-CN: CHANGELOG.zh-CN.md
 ---
 # Changelog
 
-## [1.1.0]
+## [1.1.1]
 
-### Added
+### Fixed
 
-- Another New API gateway can be the upstream: bind the plugin to a New API channel (type 60) whose base URL is a gateway that has this plugin too. Requests go to that gateway's `/byaiden_heygen/v3/...` paths with its token as a Bearer key, and settle on the duration it reports. See "Through another New API gateway" in the README.
+- The recommended price expressions in the README now use per-second prices (the minute price divided by 60) instead of `* price / 60`, so the gateway's model page shows them as a price table instead of a special billing expression. The charges are unchanged.
